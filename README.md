@@ -1,6 +1,6 @@
-# College NCC Army Wing Website
+# NCC Army Wing Website
 
-React + TypeScript + Vite application for NCC unit operations, including authentication, attendance, announcements, reports, CMS, and role-based dashboard flows.
+React + TypeScript + Vite application for NCC unit operations, including authentication, attendance, announcements, reports, and role-based dashboard flows.
 
 ## Tech Stack
 
@@ -49,21 +49,6 @@ VITE_EMAILJS_PUBLIC_KEY=
 ```bash
 npm run dev
 ```
-
-## Local Development with Emulators
-
-For isolated local development (recommended):
-
-```bash
-# Terminal 1 — Start Firebase Emulators
-npx firebase emulators:start
-
-# Terminal 2 — Start Vite dev server with emulator config
-# Use .env.local (already configured with VITE_USE_EMULATORS=true)
-npm run dev
-```
-
-Emulator UI: `http://localhost:4000`
 
 ## Scripts
 

@@ -42,26 +42,17 @@ Vite production build. Must succeed before deployment.
 
 ## Local Testing
 
-### Firebase Emulator Suite
-
-Local development should use the Firebase Emulator Suite to avoid touching production data.
+### Local Development
+Local development should be done by connecting to the production database carefully. **There is no local emulator setup.**
 
 **Setup:**
 
 ```bash
-# Start emulators (Auth + Firestore)
-npx firebase emulators:start
+npm run dev
 ```
 
-**Local environment file** (`.env.local`):
-
-```env
-VITE_USE_EMULATORS=true
-```
-
-When `VITE_USE_EMULATORS=true`, the app should connect to local emulator endpoints instead of production Firebase. See `docs/ENVIRONMENTS.md` for configuration details.
-
-> **PLANNED**: Emulator connection is not yet wired into the Firebase initialization code. The `.env.local` flag exists but `src/shared/config/firebase.ts` does not yet read it. This integration is a recommended next step.
+> [!WARNING]
+> Because you are connected to the live database, any data you save, modify, or delete while testing locally **will happen in real life** and affect actual users. Test locally with extreme caution.
 
 ### Test Data
 

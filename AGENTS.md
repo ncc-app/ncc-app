@@ -61,7 +61,7 @@ src/
 - Do not weaken Firestore security rules or Storage rules.
 - Never commit secrets, credentials, or service account keys.
 - Never use production data for automated tests.
-- Use Firebase Emulator for local development. See `docs/ENVIRONMENTS.md`.
+- Use production Firebase for local testing with extreme caution. See `docs/ENVIRONMENTS.md`.
 - Run `npm run lint`, `npx tsc --noEmit`, and `npm run build` before claiming completion.
 - Never claim a command passed unless it was actually run.
 - Do not commit or push unless explicitly requested.
@@ -80,7 +80,7 @@ src/
 ## Testing
 
 - See `docs/TESTING.md` for full testing strategy.
-- Local development: Use Firebase Emulator Suite.
+- Local development: Connects directly to production Firebase (with caution).
 - CI: Lint → Type-check → Build.
 - Never connect automated tests to production Firebase.
 

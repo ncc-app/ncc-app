@@ -2,8 +2,8 @@
 import { initializeApp } from "firebase/app";
 // Analytics (optional)
 import { getAnalytics, isSupported } from "firebase/analytics";
-import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 interface FirebaseConfig {
@@ -52,6 +52,13 @@ try {
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Connect to emulators if VITE_USE_FIREBASE_EMULATOR is true
+if (String(import.meta.env.VITE_USE_FIREBASE_EMULATOR).trim() === 'true') {
+  connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+  connectFirestoreEmulator(db, "127.0.0.1", 8080);
+  console.info("[Firebase] Connected to local Emulators for Playwright Testing.");
+}
 
 // Analytics (guarded - only runs in production browser contexts and when measurementId exists)
 if (import.meta.env.PROD && firebaseConfig.measurementId) {

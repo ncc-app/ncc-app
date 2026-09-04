@@ -25,6 +25,11 @@ ui-debug.log
 .env.local
 .env.production
 
+# Playwright Test Outputs
+playwright-report/
+test-results/
+playwright/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
