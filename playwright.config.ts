@@ -58,7 +58,7 @@ export default defineConfig({
     command: 'npm run test:serve',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
+    timeout: 5 * 60 * 1000,
     stdout: 'pipe',
     stderr: 'pipe',
     env: {

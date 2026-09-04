@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "test:serve": "firebase emulators:exec \"npm run dev\""
+    "test:serve": "firebase emulators:exec --project ncc-app-200cdt --only auth,firestore \"npm run dev\""
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
