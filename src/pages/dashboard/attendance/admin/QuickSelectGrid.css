@@ -34,6 +34,9 @@
 .qsg-name {
   font-size: 0.85rem;
   max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .qsg-rank {
@@ -52,16 +55,32 @@
 /* Responsive adjustments */
 @media (max-width: 576px) {
   .qsg-grid {
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-template-columns: 1fr;
     gap: 0.5rem;
   }
 
   .qsg-card {
-    min-height: 70px;
-    padding: 0.5rem !important;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    min-height: 50px;
+    padding: 0.75rem 1rem !important;
   }
 
   .qsg-name {
+    font-size: 0.9rem;
+    white-space: normal; /* Allow long names to wrap if needed */
+    flex-grow: 1;
+    margin: 0 0.75rem;
+  }
+  
+  .qsg-rank {
+    min-width: 45px;
     font-size: 0.75rem;
+  }
+  
+  .qsg-status {
+    margin-top: 0 !important;
   }
 }

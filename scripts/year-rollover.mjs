@@ -579,6 +579,42 @@ async function main() {
     console.error("   ⚠️ Error clearing attendance:", err.message);
   }
 
+  // 8b. Clear Event Drive Records
+  console.log("🧹 Clearing event drive records for the new year …");
+  try {
+    const drivesSnap = await db.collection("eventDrives").get();
+    if (!drivesSnap.empty) {
+      for (const driveDoc of drivesSnap.docs) {
+        // Delete responses subcollection first
+        const responsesSnap = await driveDoc.ref
+          .collection("responses")
+          .get();
+        if (!responsesSnap.empty) {
+          for (let i = 0; i < responsesSnap.size; i += MAX_BATCH_OPS) {
+            const chunk = responsesSnap.docs.slice(i, i + MAX_BATCH_OPS);
+            const batch = db.batch();
+            chunk.forEach((doc) => batch.delete(doc.ref));
+            await batch.commit();
+          }
+        }
+      }
+      // Delete drive documents
+      for (let i = 0; i < drivesSnap.size; i += MAX_BATCH_OPS) {
+        const chunk = drivesSnap.docs.slice(i, i + MAX_BATCH_OPS);
+        const batch = db.batch();
+        chunk.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+      }
+      console.log(
+        `   ✓ Cleared ${drivesSnap.size} event drives and their responses.`,
+      );
+    } else {
+      console.log("   ✓ No event drives to clear.");
+    }
+  } catch (err) {
+    console.error("   ⚠️ Error clearing event drives:", err.message);
+  }
+
   // 9. Update settings
   console.log("📝 Updating appConfig...");
   let nextRolloverDateStr = config.nextRolloverDate || "";

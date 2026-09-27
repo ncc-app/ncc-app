@@ -186,6 +186,45 @@ All persistent data is stored in **Cloud Firestore** under the project `ncc-app-
 
 ---
 
+### `eventDrives/{driveId}`
+
+**Purpose**: Event drive polling (opt-in/opt-out) for camps, volunteering, firing selection, etc.
+**Identifier**: Auto-generated.
+**Security**: Authenticated read. Admin/superadmin write.
+**Lifecycle**: Created by admin → cadets respond → admin closes → deleted during year rollover.
+
+| Field              | Type         | Notes                                                     |
+| ------------------ | ------------ | --------------------------------------------------------- |
+| `title`            | string       | Drive name                                                |
+| `description`      | string       | Optional                                                  |
+| `driveType`        | string       | `volunteering`, `camp_willingness`, `firing_selection`, `other` |
+| `customDriveType`  | string       | Populated if `driveType` is `other`                       |
+| `targetDivisions`  | string[]     | `["SD"]`, `["SW"]`, or `["SD", "SW"]`                     |
+| `targetNccYear`    | string       | `1st Year`, `2nd Year`, or `3rd Year`                     |
+| `date`             | string       | Actual event date                                         |
+| `location`         | string       | Optional                                                  |
+| `capacity`         | number       | Optional                                                  |
+| `deadline`         | string (ISO) | Required — response deadline                              |
+| `status`           | string       | `open`, `closed`                                          |
+| `createdBy`        | string       | Admin UID                                                 |
+| `createdAt`        | string (ISO) |                                                           |
+| `updatedAt`        | string (ISO) |                                                           |
+| `stats`            | map          | `{ optedIn: number, optedOut: number, noResponse: number }` |
+
+**Subcollection**: `eventDrives/{driveId}/responses/{cadetUid}` — individual cadet responses.
+
+| Field         | Type         | Notes                        |
+| ------------- | ------------ | ---------------------------- |
+| `cadetUid`    | string       | User UID                     |
+| `cadetName`   | string       | Denormalized for display     |
+| `division`    | string       | `SD` or `SW`                 |
+| `nccYear`     | string       | Cadet's NCC year             |
+| `response`    | string       | `opted_in`, `opted_out`      |
+| `reason`      | string       | Optional — opt-out reason    |
+| `respondedAt` | string (ISO) |                              |
+
+---
+
 ### `achievements/{achievementId}`
 
 **Purpose**: Cadet achievement records.

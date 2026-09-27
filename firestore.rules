@@ -121,6 +121,19 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAdmin() || isSuperAdmin();
     }
+
+    // Event Drives (opt-in/opt-out polling)
+    match /eventDrives/{driveId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin() || isSuperAdmin();
+
+      // Responses subcollection — cadets write their own response only
+      match /responses/{responseId} {
+        allow read: if isAuthenticated();
+        allow create, update: if isAuthenticated() && request.auth.uid == responseId;
+        allow delete: if isAdmin() || isSuperAdmin();
+      }
+    }
     
     // Gallery
     match /gallery/{albumId} {

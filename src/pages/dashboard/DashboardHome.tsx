@@ -16,6 +16,7 @@ const Dashboard: React.FC = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [pendingAlumniCount, setPendingAlumniCount] = useState(0);
+  const [eligibleDriveCount, setEligibleDriveCount] = useState(0);
   const isAdmin = userProfile?.role === "admin";
   const isSuperAdmin = userProfile?.role === "superadmin";
 
@@ -88,6 +89,41 @@ const Dashboard: React.FC = () => {
     };
     fetchPendingAlumniCount();
   }, [isSuperAdmin]);
+
+  // Fetch eligible event drive count for cadets
+  useEffect(() => {
+    const fetchEligibleDriveCount = async () => {
+      if (!currentUser?.uid || !userProfile) return;
+      const profileData = userProfile as unknown as {
+        division?: string;
+        nccYear?: string;
+        [key: string]: unknown;
+      };
+      const userDivision = profileData?.division;
+      const userNccYear = profileData?.nccYear;
+      if (!userDivision || !userNccYear) return;
+      try {
+        const snap = await getDocs(
+          query(
+            collection(db, "eventDrives"),
+            where("status", "==", "open"),
+            where("targetDivision", "==", userDivision),
+            where("targetNccYear", "==", userNccYear),
+          ),
+        );
+        // Only count drives whose deadline hasn't passed
+        const now = new Date();
+        const active = snap.docs.filter((d) => {
+          const deadline = d.data().deadline;
+          return deadline && new Date(deadline) > now;
+        });
+        setEligibleDriveCount(active.length);
+      } catch (error) {
+        console.error("Failed to fetch eligible drive count:", error);
+      }
+    };
+    fetchEligibleDriveCount();
+  }, [currentUser?.uid, userProfile]);
 
   return (
     <Container className="py-5">
@@ -216,13 +252,13 @@ const Dashboard: React.FC = () => {
               <Card className="text-center h-100 shadow-sm hover-lift">
                 <Card.Body className="d-flex flex-column justify-content-between">
                   <div>
-                    <i className="bi bi-briefcase text-info dashboard-home-icon"></i>
-                    <h3 className="mt-3">Duties</h3>
-                    <p className="text-muted small">Duty rosters</p>
+                    <i className="bi bi-clipboard2-check text-info dashboard-home-icon"></i>
+                    <h3 className="mt-3">Event Manager</h3>
+                    <p className="text-muted small">Event drives & polling</p>
                   </div>
                   <Button
                     as={Link}
-                    to="/admin/duties"
+                    to="/admin/event-drives"
                     variant="info"
                     className="mt-2"
                   >
@@ -394,16 +430,26 @@ const Dashboard: React.FC = () => {
                 <Card.Body className="d-flex flex-column justify-content-between">
                   <div>
                     <i className="bi bi-calendar-event text-warning dashboard-home-icon"></i>
-                    <h3 className="mt-3">Events</h3>
-                    <p className="text-muted small">Upcoming</p>
+                    <h3 className="mt-3">
+                      Event Drives
+                      {eligibleDriveCount > 0 && (
+                        <Badge
+                          bg="danger"
+                          className="ms-2 dashboard-pending-badge"
+                        >
+                          {eligibleDriveCount}
+                        </Badge>
+                      )}
+                    </h3>
+                    <p className="text-muted small">Opt-in / Opt-out</p>
                   </div>
                   <Button
                     as={Link}
-                    to="/events"
+                    to="/event-drives"
                     variant="warning"
                     className="mt-2"
                   >
-                    View Events
+                    View Drives
                   </Button>
                 </Card.Body>
               </Card>

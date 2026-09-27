@@ -4,6 +4,9 @@ import {
   AcademicYear,
   AttendanceStatus,
   Department,
+  DriveResponseType,
+  DriveStatus,
+  DriveType,
   EventType,
   NccYear,
   UserRole,
@@ -133,4 +136,38 @@ export interface CmsDoc {
   updatedAt?: string;
   updatedBy?: string;
   visibility?: "public" | "private";
+}
+
+// Event Drive types
+export interface EventDrive {
+  id?: string;
+  title: string;
+  description?: string;
+  driveType: DriveType;
+  customDriveType?: string;
+  targetDivision: "SD" | "SW";
+  targetNccYear: string;
+  date: string;
+  location?: string;
+  capacity?: number;
+  deadline: string;
+  status: DriveStatus;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+  stats: {
+    optedIn: number;
+    optedOut: number;
+    noResponse: number;
+  };
+}
+
+export interface DriveResponse {
+  cadetUid: string;
+  cadetName: string;
+  division: "SD" | "SW";
+  nccYear: string;
+  response: DriveResponseType;
+  reason?: string;
+  respondedAt: string;
 }

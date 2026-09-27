@@ -166,7 +166,7 @@ export function QuickSelectGrid({
               <div className="qsg-rank small text-uppercase opacity-75">
                 {cadet.rank || "CDT"}
               </div>
-              <div className="qsg-name fw-semibold text-truncate">
+              <div className="qsg-name fw-semibold">
                 {cadet.name}
               </div>
               <div className="qsg-status mt-1">

@@ -302,3 +302,43 @@ export const BLOOD_GROUPS = [
   "A1B-",
 ] as const;
 export type BloodGroup = (typeof BLOOD_GROUPS)[number];
+
+// Event Drive types
+export const DRIVE_TYPES = {
+  VOLUNTEERING: "volunteering",
+  CAMP_WILLINGNESS: "camp_willingness",
+  FIRING_SELECTION: "firing_selection",
+  OTHER: "other",
+} as const;
+
+export type DriveType = (typeof DRIVE_TYPES)[keyof typeof DRIVE_TYPES];
+
+export const DRIVE_TYPE_LABELS: Record<DriveType, string> = {
+  volunteering: "Volunteering",
+  camp_willingness: "Camp Willingness",
+  firing_selection: "Firing Selection",
+  other: "Other",
+};
+
+// Event Drive status
+export const DRIVE_STATUS = {
+  OPEN: "open",
+  CLOSED: "closed",
+} as const;
+
+export type DriveStatus = (typeof DRIVE_STATUS)[keyof typeof DRIVE_STATUS];
+
+// Event Drive response types
+export const DRIVE_RESPONSE = {
+  OPTED_IN: "opted_in",
+  OPTED_OUT: "opted_out",
+} as const;
+
+export type DriveResponseType =
+  (typeof DRIVE_RESPONSE)[keyof typeof DRIVE_RESPONSE];
+
+export const DRIVE_RESPONSE_LABELS: Record<DriveResponseType | "no_response", string> = {
+  opted_in: "Opted In",
+  opted_out: "Opted Out",
+  no_response: "No Response",
+};

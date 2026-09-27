@@ -19,6 +19,9 @@ import RoleManagement from "@/pages/dashboard/users/RoleManagement";
 import UserManagement from "@/pages/dashboard/users/UserManagement";
 import AdminSettings from "@/pages/dashboard/settings/AdminSettings";
 import AlumniManagement from "@/pages/dashboard/alumni/AlumniManagement";
+import EventDriveManagement from "@/pages/dashboard/eventDrives/EventDriveManagement";
+import DriveDetailPage from "@/pages/dashboard/eventDrives/DriveDetailPage";
+import EventDrivesView from "@/pages/dashboard/eventDrives/EventDrivesView";
 
 export const protectedRoutes = (
   <>
@@ -97,12 +100,26 @@ export const protectedRoutes = (
       }
     />
     <Route
-      path="/admin/events"
+      path="/admin/event-drives"
       element={
         <ProtectedRoute requiredRoles={["admin", "superadmin", "alumni"]}>
-          <div className="container py-5">
-            <h2>Event Management</h2>
-          </div>
+          <EventDriveManagement />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/admin/event-drives/:driveId"
+      element={
+        <ProtectedRoute requiredRoles={["admin", "superadmin", "alumni"]}>
+          <DriveDetailPage />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/event-drives"
+      element={
+        <ProtectedRoute>
+          <EventDrivesView />
         </ProtectedRoute>
       }
     />
