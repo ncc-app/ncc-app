@@ -22,7 +22,8 @@
 npm run lint
 ```
 
-Uses ESLint with TypeScript, React, and React Hooks plugins. Configured to report unused disable directives and fail on any warnings.
+Uses ESLint with TypeScript, React, and React Hooks plugins. 
+**Important**: The CI pipeline strictly enforces `--report-unused-disable-directives` and `--max-warnings 0`. Do not use `eslint-disable` comments unless strictly necessary, and clean up unused ones, otherwise the CI build will fail.
 
 ### Type Check
 

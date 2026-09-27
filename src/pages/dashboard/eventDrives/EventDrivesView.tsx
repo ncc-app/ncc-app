@@ -145,7 +145,6 @@ export default function EventDrivesView() {
     });
 
     return { active, completed, all: allDrives.length, optedIn, optedOut, noResp };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allDrives, responses]);
 
   // Filter drives
@@ -165,7 +164,6 @@ export default function EventDrivesView() {
     }
 
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allDrives, responses, statusTab, responseTab]);
 
   // Reset page on filter change

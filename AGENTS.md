@@ -63,6 +63,7 @@ src/
 - Never use production data for automated tests.
 - Use Firebase Emulator for local development. See `docs/ENVIRONMENTS.md`.
 - Run `npm run lint`, `npx tsc --noEmit`, and `npm run build` before claiming completion.
+- **NEVER** use `eslint-disable` or `@ts-ignore` to bypass linter/type issues unless absolutely strictly necessary. If you do, ensure you clean up any unused directives before committing, as the CI strictly enforces `--report-unused-disable-directives` and `--max-warnings 0`.
 - Never claim a command passed unless it was actually run.
 - Do not commit or push unless explicitly requested.
 - Keep changes focused and reviewable.
