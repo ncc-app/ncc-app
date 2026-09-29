@@ -13,71 +13,38 @@ import {
   BLOOD_GROUPS,
 } from "@/shared/config/constants";
 import { db } from "@/shared/config/firebase";
-import {
-  collection,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-  writeBatch,
-} from "firebase/firestore";
+import { doc, writeBatch } from "firebase/firestore";
 import React, { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Badge,
   Button,
-  Card,
   Col,
-  Container,
   Form,
   Modal,
   Row,
-  Spinner,
   Table,
 } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { TablePaginationFooter } from "@/components";
-import "./CadetManagement.css";
+import type { ManagedUser } from "../types";
+import "../UserManagement.css";
 
 const maxDobDate = new Date();
 maxDobDate.setFullYear(maxDobDate.getFullYear() - 17);
 const maxDobString = maxDobDate.toISOString().split("T")[0];
 
-type UserRole = "member" | "admin" | "superadmin";
-
-interface CadetUser {
-  uid: string;
-  email: string;
-  name: string;
-  role: UserRole;
-  userType?: "ano" | "cadet";
-  createdAt: string;
-  status: string;
-  regimentalNumber?: string;
-  division?: "SD" | "SW";
-  dateOfBirth?: string;
-  dateOfEnrollment?: string;
-  nccYear?: string;
-  rank?: string;
-  year?: string;
-  residentialStatus?: string;
-  department?: string;
-  rollNo?: string;
-  registerNumber?: string;
-  phone?: string;
-  bloodGroup?: string;
-  fatherName?: string;
-  address?: string;
-  lastUpdated?: string;
+interface CadetDirectoryTabProps {
+  users: ManagedUser[];
+  onUsersChange: React.Dispatch<React.SetStateAction<ManagedUser[]>>;
 }
 
-const CadetManagement: React.FC = () => {
-  const navigate = useNavigate();
-  const [users, setUsers] = useState<CadetUser[]>([]);
-  const [loading, setLoading] = useState(true);
+const CadetDirectoryTab: React.FC<CadetDirectoryTabProps> = ({
+  users,
+  onUsersChange,
+}) => {
   const [saving, setSaving] = useState(false);
-  const [cadetView, setCadetView] = useState<CadetUser | null>(null);
+  const [cadetView, setCadetView] = useState<ManagedUser | null>(null);
   const [cadetEditMode, setCadetEditMode] = useState(false);
   const [confirmSave, setConfirmSave] = useState(false);
   const [divisionFilter, setDivisionFilter] = useState<"ALL" | "SD" | "SW">(
@@ -121,29 +88,6 @@ const CadetManagement: React.FC = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [divisionFilter, nccYearFilter, searchTerm, rowsPerPage]);
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
-    try {
-      const usersRef = collection(db, "users");
-      const q = query(usersRef, orderBy("createdAt", "desc"));
-      const snapshot = await getDocs(q);
-      setUsers(
-        snapshot.docs.map((d) => ({
-          uid: d.id,
-          ...(d.data() as any),
-        })) as CadetUser[],
-      );
-    } catch (e) {
-      console.error(e);
-      toast.error("Failed to load cadets");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const cadetUsers = useMemo(() => {
     let list = users.filter(
@@ -217,7 +161,7 @@ const CadetManagement: React.FC = () => {
     return NCC_RANKS.find((r) => r.code === code)?.name || code;
   };
 
-  const openCadetView = (u: CadetUser) => {
+  const openCadetView = (u: ManagedUser) => {
     setCadetView(u);
     setCadetEditMode(false);
     setConfirmSave(false);
@@ -412,7 +356,8 @@ const CadetManagement: React.FC = () => {
 
       await batch.commit();
 
-      setUsers((prev) =>
+      // Update the parent's user list via props
+      onUsersChange((prev) =>
         prev.map((u) =>
           u.uid === cadetView.uid
             ? {
@@ -473,198 +418,176 @@ const CadetManagement: React.FC = () => {
     }
   };
 
-  if (loading) {
-    return (
-      <Container className="py-5 text-center">
-        <Spinner as="span" animation="border" size="sm" />
-        <p className="mt-3">Loading cadet management...</p>
-      </Container>
-    );
-  }
-
   return (
-    <Container className="py-5">
-      <Card className="shadow">
-        <Card.Header className="bg-primary text-white d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2">
-          <h3 className="mb-0">
-            <i className="bi bi-people-fill me-2"></i>
-            Cadet Management
-          </h3>
-          <Button variant="light" size="sm" onClick={() => navigate(-1)}>
-            <i className="bi bi-arrow-left me-1"></i> Back
-          </Button>
-        </Card.Header>
-        <Card.Body>
-          <Alert variant="info">
-            View member profiles. Admins and super admins can edit the full
-            cadet record from the profile view.
-          </Alert>
-          <Row className="mb-3 g-3">
-            <Col xs={12} md={3}>
-              <Form.Label className="small fw-semibold">Division</Form.Label>
-              <div className="btn-group w-100" role="group">
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="division-filter-cadets"
-                  id="division-cadets-all"
-                  checked={divisionFilter === "ALL"}
-                  onChange={() => setDivisionFilter("ALL")}
-                />
-                <label
-                  className="btn btn-outline-primary"
-                  htmlFor="division-cadets-all"
-                >
-                  Both
-                </label>
+    <>
+      <Alert variant="info">
+        View member profiles. Admins and super admins can edit the full
+        cadet record from the profile view.
+      </Alert>
+      <Row className="mb-3 g-3">
+        <Col xs={12} md={3}>
+          <Form.Label className="small fw-semibold">Division</Form.Label>
+          <div className="btn-group w-100" role="group">
+            <input
+              type="radio"
+              className="btn-check"
+              name="division-filter-cadets"
+              id="division-cadets-all"
+              checked={divisionFilter === "ALL"}
+              onChange={() => setDivisionFilter("ALL")}
+            />
+            <label
+              className="btn btn-outline-primary"
+              htmlFor="division-cadets-all"
+            >
+              Both
+            </label>
 
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="division-filter-cadets"
-                  id="division-cadets-sd"
-                  checked={divisionFilter === "SD"}
-                  onChange={() => setDivisionFilter("SD")}
-                />
-                <label
-                  className="btn btn-outline-primary"
-                  htmlFor="division-cadets-sd"
-                >
-                  SD
-                </label>
+            <input
+              type="radio"
+              className="btn-check"
+              name="division-filter-cadets"
+              id="division-cadets-sd"
+              checked={divisionFilter === "SD"}
+              onChange={() => setDivisionFilter("SD")}
+            />
+            <label
+              className="btn btn-outline-primary"
+              htmlFor="division-cadets-sd"
+            >
+              SD
+            </label>
 
-                <input
-                  type="radio"
-                  className="btn-check"
-                  name="division-filter-cadets"
-                  id="division-cadets-sw"
-                  checked={divisionFilter === "SW"}
-                  onChange={() => setDivisionFilter("SW")}
-                />
-                <label
-                  className="btn btn-outline-primary"
-                  htmlFor="division-cadets-sw"
-                >
-                  SW
-                </label>
-              </div>
-            </Col>
-            <Col xs={12} md={3}>
-              <Form.Label className="small fw-semibold">Year</Form.Label>
-              <Form.Select
-                value={nccYearFilter}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setNccYearFilter(e.target.value)
-                }
-              >
-                <option value="" disabled>
-                  Select NCC Year
-                </option>
-                <option value="ALL">All Years</option>
-                {NCC_YEARS.map((y) => (
-                  <option key={y} value={y}>
-                    {y}
-                  </option>
-                ))}
-              </Form.Select>
-            </Col>
-            <Col xs={12} md={3}>
-              <Form.Label className="small fw-semibold">Search</Form.Label>
-              <Form.Control
-                type="text"
-                placeholder="Search by name or regimental number..."
-                value={searchTerm}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearchTerm(e.target.value)
-                }
-              />
-            </Col>
-            <Col xs={12} md={2} className="d-flex align-items-end">
-              <Button
-                variant="outline-secondary"
-                className="w-100"
-                onClick={clearFilters}
-              >
-                <i className="bi bi-x-circle me-1"></i>
-                Clear Filters
-              </Button>
-            </Col>
-          </Row>
-          <Table striped bordered hover responsive className="cadet-mgmt-table">
-            <thead>
-              <tr>
-                <th rowSpan={2}>S.No</th>
-                <th rowSpan={2}>Name</th>
-                <th rowSpan={2}>SD/SW</th>
-                <th rowSpan={2}>Regimental Number</th>
-                <th colSpan={2} className="year-header">
-                  Year
-                </th>
-                <th rowSpan={2}>Actions</th>
-              </tr>
-              <tr>
-                <th>NCC</th>
-                <th>Academic</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paginatedCadets.map((u, index) => (
-                <tr key={u.uid}>
-                  <td>{startIndex + index + 1}</td>
-                  <td className="col-left" dir="ltr">
-                    {u.name || "N/A"}
-                  </td>
-                  <td>
-                    {u.division ? (
-                      <Badge bg={u.division === "SD" ? "info" : "warning"}>
-                        {u.division}
-                      </Badge>
-                    ) : (
-                      <span className="text-muted">-</span>
-                    )}
-                  </td>
-                  <td>{u.regimentalNumber || "-"}</td>
-                  <td>{formatYear(u.nccYear)}</td>
-                  <td>{formatYear(u.year)}</td>
-                  <td>
-                    <Button
-                      size="sm"
-                      variant="outline-primary"
-                      className="rounded-circle d-inline-flex align-items-center justify-content-center"
-                      onClick={() => openCadetView(u)}
-                      aria-label={`View ${u.name || "cadet"} profile`}
-                      title="View profile"
-                    >
-                      <i className="bi bi-eye-fill"></i>
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {cadetUsers.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="text-center text-muted">
-                    No cadets found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </Table>
-          <TablePaginationFooter
-            totalItems={cadetUsers.length}
-            currentPage={safePage}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={setRowsPerPage}
-            onFirstPage={() => setCurrentPage(1)}
-            onPreviousPage={() =>
-              setCurrentPage((page) => Math.max(1, page - 1))
+            <input
+              type="radio"
+              className="btn-check"
+              name="division-filter-cadets"
+              id="division-cadets-sw"
+              checked={divisionFilter === "SW"}
+              onChange={() => setDivisionFilter("SW")}
+            />
+            <label
+              className="btn btn-outline-primary"
+              htmlFor="division-cadets-sw"
+            >
+              SW
+            </label>
+          </div>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Label className="small fw-semibold">Year</Form.Label>
+          <Form.Select
+            value={nccYearFilter}
+            onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+              setNccYearFilter(e.target.value)
             }
-            onNextPage={() =>
-              setCurrentPage((page) => Math.min(totalPages, page + 1))
+          >
+            <option value="" disabled>
+              Select NCC Year
+            </option>
+            <option value="ALL">All Years</option>
+            {NCC_YEARS.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
+            ))}
+          </Form.Select>
+        </Col>
+        <Col xs={12} md={3}>
+          <Form.Label className="small fw-semibold">Search</Form.Label>
+          <Form.Control
+            type="text"
+            placeholder="Search by name or regimental number..."
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+              setSearchTerm(e.target.value)
             }
-            onLastPage={() => setCurrentPage(totalPages)}
           />
-        </Card.Body>
-      </Card>
+        </Col>
+        <Col xs={12} md={2} className="d-flex align-items-end">
+          <Button
+            variant="outline-secondary"
+            className="w-100"
+            onClick={clearFilters}
+          >
+            <i className="bi bi-x-circle me-1"></i>
+            Clear Filters
+          </Button>
+        </Col>
+      </Row>
+      <Table striped bordered hover responsive className="user-mgmt-table">
+        <thead>
+          <tr>
+            <th rowSpan={2}>S.No</th>
+            <th rowSpan={2}>Name</th>
+            <th rowSpan={2}>SD/SW</th>
+            <th rowSpan={2}>Regimental Number</th>
+            <th colSpan={2} className="year-header">
+              Year
+            </th>
+            <th rowSpan={2}>Actions</th>
+          </tr>
+          <tr>
+            <th>NCC</th>
+            <th>Academic</th>
+          </tr>
+        </thead>
+        <tbody>
+          {paginatedCadets.map((u, index) => (
+            <tr key={u.uid}>
+              <td>{startIndex + index + 1}</td>
+              <td className="col-left" dir="ltr">
+                {u.name || "N/A"}
+              </td>
+              <td>
+                {u.division ? (
+                  <Badge bg={u.division === "SD" ? "info" : "warning"}>
+                    {u.division}
+                  </Badge>
+                ) : (
+                  <span className="text-muted">-</span>
+                )}
+              </td>
+              <td>{u.regimentalNumber || "-"}</td>
+              <td>{formatYear(u.nccYear)}</td>
+              <td>{formatYear(u.year)}</td>
+              <td>
+                <Button
+                  size="sm"
+                  variant="outline-primary"
+                  className="rounded-circle d-inline-flex align-items-center justify-content-center"
+                  onClick={() => openCadetView(u)}
+                  aria-label={`View ${u.name || "cadet"} profile`}
+                  title="View profile"
+                >
+                  <i className="bi bi-eye-fill"></i>
+                </Button>
+              </td>
+            </tr>
+          ))}
+          {cadetUsers.length === 0 && (
+            <tr>
+              <td colSpan={7} className="text-center text-muted">
+                No cadets found
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </Table>
+      <TablePaginationFooter
+        totalItems={cadetUsers.length}
+        currentPage={safePage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={setRowsPerPage}
+        onFirstPage={() => setCurrentPage(1)}
+        onPreviousPage={() =>
+          setCurrentPage((page) => Math.max(1, page - 1))
+        }
+        onNextPage={() =>
+          setCurrentPage((page) => Math.min(totalPages, page + 1))
+        }
+        onLastPage={() => setCurrentPage(totalPages)}
+      />
 
       <Modal show={!!cadetView} onHide={closeCadetView} centered size="xl">
         <Modal.Header closeButton>
@@ -1245,8 +1168,8 @@ const CadetManagement: React.FC = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-    </Container>
+    </>
   );
 };
 
-export default CadetManagement;
+export default CadetDirectoryTab;

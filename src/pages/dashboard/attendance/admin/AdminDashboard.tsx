@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Row,
@@ -9,13 +9,8 @@ import {
   Alert,
   Button,
   Badge,
+  Form,
 } from "react-bootstrap";
-import {
-  AttendanceTrendChart,
-  AttendanceBarChart,
-  AttendancePieChart,
-} from "@/features/attendance/charts";
-import { chartColors } from "@/features/attendance/charts/ChartConfig";
 import { BatchSelector } from "./BatchSelector";
 import {
   DIVISIONS,
@@ -25,7 +20,8 @@ import {
 import type { Division, NccYear } from "@/shared/config/constants";
 import type { AttendanceSession } from "@/features/attendance/attendance.types";
 import type { Cadet } from "@/shared/types";
-import { format, subMonths } from "date-fns";
+import toast from "react-hot-toast";
+import { getCadetStats } from "@/features/attendance/service";
 
 interface CadetAttendanceRate {
   cadet: Cadet & { id: string };
@@ -48,6 +44,10 @@ export function AdminDashboard({
   const navigate = useNavigate();
   const [divisionFilter, setDivisionFilter] = useState<Division | "">("");
   const [yearFilter, setYearFilter] = useState<NccYear | "">("");
+  const [reportDivision, setReportDivision] = useState<Division | "">("");
+  const [reportYear, setReportYear] = useState<NccYear | "">("");
+  const [reportStartDate, setReportStartDate] = useState("");
+  const [reportEndDate, setReportEndDate] = useState("");
 
   const filteredSessions = useMemo(
     () =>
@@ -98,78 +98,51 @@ export function AdminDashboard({
     };
   }, [filteredLockedSessions, filteredCadets]);
 
-  // Monthly trend data (last 6 months)
-  const trendData = useMemo(() => {
-    const months: { label: string; value: number }[] = [];
-    const now = new Date();
+  const [lowAttendanceCadets, setLowAttendanceCadets] = useState<
+    CadetAttendanceRate[]
+  >([]);
 
-    for (let i = 5; i >= 0; i--) {
-      const monthDate = subMonths(now, i);
-      const monthKey = format(monthDate, "yyyy-MM");
-      const monthLabel = format(monthDate, "MMM yyyy");
+  useEffect(() => {
+    let cancelled = false;
 
-      const monthSessions = filteredLockedSessions.filter((s) =>
-        s.date.startsWith(monthKey),
+    async function loadLowAttendanceCadets() {
+      const stats = await Promise.all(
+        filteredCadets.map(async (cadet) => ({
+          cadet,
+          stats: await getCadetStats(cadet.id),
+        })),
       );
 
-      let present = 0,
-        total = 0;
-      monthSessions.forEach((s) => {
-        if (s.stats) {
-          present += s.stats.present;
-          total += s.stats.total;
-        }
-      });
-
-      months.push({
-        label: monthLabel,
-        value: total > 0 ? Math.round((present / total) * 1000) / 10 : 0,
-      });
+      if (cancelled) return;
+      setLowAttendanceCadets(
+        stats
+          .filter(
+            ({ stats }) =>
+              stats && stats.totalSessions > 0 && stats.attendanceRate < ATTENDANCE_THRESHOLDS.LOW,
+          )
+          .map(({ cadet, stats }) => ({
+            cadet,
+            rate: stats!.attendanceRate,
+            present: stats!.present,
+            total: stats!.totalSessions,
+          }))
+          .sort((a, b) => a.rate - b.rate),
+      );
     }
 
-    return months;
-  }, [filteredLockedSessions]);
-
-  // Division comparison data
-  const divisionData = useMemo(() => {
-    return DIVISIONS.map((div) => {
-      const divSessions = filteredLockedSessions.filter(
-        (s) => s.divisionId === div,
-      );
-      let present = 0,
-        total = 0;
-      divSessions.forEach((s) => {
-        if (s.stats) {
-          present += s.stats.present;
-          total += s.stats.total;
-        }
-      });
-      return {
-        label: div,
-        value: total > 0 ? Math.round((present / total) * 1000) / 10 : 0,
-        color: chartColors[div as keyof typeof chartColors],
-      };
+    loadLowAttendanceCadets().catch((error) => {
+      console.error("Error loading low attendance data:", error);
+      if (!cancelled) setLowAttendanceCadets([]);
     });
-  }, [filteredLockedSessions]);
 
-  // Session title keyword distribution
-  const titleDistribution = useMemo(() => {
-    const titleCounts: Record<string, number> = {};
-    filteredLockedSessions.forEach((s) => {
-      const keyword = s.title.trim().split(/\s+/)[0] || "Session";
-      titleCounts[keyword] = (titleCounts[keyword] || 0) + 1;
-    });
-    return Object.entries(titleCounts).map(([label, value]) => ({
-      label,
-      value,
-    }));
-  }, [filteredLockedSessions]);
+    return () => {
+      cancelled = true;
+    };
+  }, [filteredCadets]);
 
-  // Low attendance cadets (placeholder - would need full marks data for accuracy)
-  const lowAttendanceCadets = useMemo<CadetAttendanceRate[]>(() => {
-    // This is a simplified version - in production, use cadetAttendanceStats collection
-    return [];
-  }, []);
+  const handleReportExport = () => {
+    toast("Export coming soon", { icon: "ℹ️" });
+  };
 
   if (loading) {
     return (
@@ -254,67 +227,8 @@ export function AdminDashboard({
             </Col>
           </Row>
 
-          {/* Charts Row */}
           <Row className="g-3 mb-4">
-            <Col lg={8}>
-              <Card className="h-100">
-                <Card.Body>
-                  {filteredLockedSessions.length === 0 ? (
-                    <Alert variant="light" className="mb-0 text-center">
-                      No locked sessions available to plot trend data for the
-                      selected filters.
-                    </Alert>
-                  ) : (
-                    <AttendanceTrendChart
-                      data={trendData}
-                      title="Attendance Trend (Last 6 Months)"
-                      height={300}
-                    />
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={4}>
-              <Card className="h-100">
-                <Card.Body>
-                  {filteredLockedSessions.length === 0 ? (
-                    <Alert variant="light" className="mb-0 text-center">
-                      No locked sessions available to show session title
-                      distribution.
-                    </Alert>
-                  ) : (
-                    <AttendancePieChart
-                      data={titleDistribution}
-                      title="Sessions by Title"
-                      height={300}
-                    />
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-
-          {/* Division Comparison */}
-          <Row className="g-3 mb-4">
-            <Col lg={6}>
-              <Card className="h-100">
-                <Card.Body>
-                  {filteredLockedSessions.length === 0 ? (
-                    <Alert variant="light" className="mb-0 text-center">
-                      No locked sessions available to compare division
-                      attendance.
-                    </Alert>
-                  ) : (
-                    <AttendanceBarChart
-                      data={divisionData}
-                      title="Attendance by Division"
-                      height={250}
-                    />
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col lg={6}>
+            <Col lg={7}>
               <Card className="h-100">
                 <Card.Header className="d-flex justify-content-between align-items-center">
                   <h6 className="mb-0">
@@ -324,10 +238,9 @@ export function AdminDashboard({
                 </Card.Header>
                 <Card.Body style={{ maxHeight: 300, overflowY: "auto" }}>
                   {lowAttendanceCadets.length === 0 ? (
-                    <p className="text-muted text-center py-4">
-                      No cadets below {ATTENDANCE_THRESHOLDS.LOW}% attendance
-                      threshold
-                    </p>
+                    <Alert variant="light" className="mb-0">
+                      All cadets in this selection have good attendance (above 75%), or no sessions have been marked yet!
+                    </Alert>
                   ) : (
                     <Table size="sm" hover>
                       <thead>
@@ -350,6 +263,70 @@ export function AdminDashboard({
                       </tbody>
                     </Table>
                   )}
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col lg={5}>
+              <Card className="h-100">
+                <Card.Header>
+                  <h6 className="mb-0">Generate Attendance Report</h6>
+                </Card.Header>
+                <Card.Body>
+                  <Row className="g-3">
+                    <Col sm={6}>
+                      <Form.Label>Division</Form.Label>
+                      <Form.Select
+                        value={reportDivision}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setReportDivision(e.target.value as Division | "")
+                        }
+                      >
+                        <option value="">All divisions</option>
+                        {DIVISIONS.map((division) => (
+                          <option key={division} value={division}>
+                            {division}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Col>
+                    <Col sm={6}>
+                      <Form.Label>NCC Year</Form.Label>
+                      <Form.Select
+                        value={reportYear}
+                        onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                          setReportYear(e.target.value as NccYear | "")
+                        }
+                      >
+                        <option value="">All years</option>
+                        {(["1st Year", "2nd Year", "3rd Year"] as NccYear[]).map(
+                          (year) => (
+                            <option key={year} value={year}>
+                              {year}
+                            </option>
+                          ),
+                        )}
+                      </Form.Select>
+                    </Col>
+                    <Col sm={6}>
+                      <Form.Label>From</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={reportStartDate}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReportStartDate(e.target.value)}
+                      />
+                    </Col>
+                    <Col sm={6}>
+                      <Form.Label>To</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={reportEndDate}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReportEndDate(e.target.value)}
+                      />
+                    </Col>
+                  </Row>
+                  <Button className="mt-3" onClick={handleReportExport}>
+                    <i className="bi bi-download me-1" /> Export
+                  </Button>
                 </Card.Body>
               </Card>
             </Col>

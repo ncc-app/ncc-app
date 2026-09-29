@@ -8,6 +8,12 @@ export type SessionStatus = "draft" | "open" | "locked";
 // Attendance mark status
 export type AttendanceStatus = "P" | "A"; // Present, Absent
 
+export type AttendanceCategory =
+  | "Theory Class"
+  | "Parade"
+  | "Volunteering"
+  | "Other";
+
 // Cached session statistics
 export interface SessionStats {
   total: number;
@@ -24,6 +30,7 @@ export interface AttendanceSession {
   // Session details
   title: string;
   date: string; // YYYY-MM-DD
+  category?: AttendanceCategory;
   paradeCount?: number; // Number of parades this session counts as (default 1, 2 for Saturday/double parades)
   isOfficialParade?: boolean; // Whether this is an official parade (used for official-only attendance reports)
   // Status
@@ -54,6 +61,12 @@ export interface MonthlyStats {
   absent: number;
 }
 
+export interface CategoryStats {
+  total: number;
+  present: number;
+  absent: number;
+}
+
 // Per-cadet attendance statistics (stored in cadetAttendanceStats collection)
 export interface CadetAttendanceStats {
   cadetId: string;
@@ -66,6 +79,7 @@ export interface CadetAttendanceStats {
   attendanceRate: number; // present / total * 100
   // Monthly breakdown for trends
   monthly: Record<string, MonthlyStats>; // Key: 'YYYY-MM'
+  categoryBreakdown?: Record<AttendanceCategory, CategoryStats>;
   // Recent sessions for quick reference
   recentSessionIds: string[];
   updatedAt: string;
@@ -87,6 +101,7 @@ export interface SessionFormData {
   divisionId: Division;
   nccYear: NccYear;
   title: string;
+  category?: AttendanceCategory;
   date: string;
   paradeCount?: number; // 1 = normal, 2 = Saturday/double parade
   isOfficialParade?: boolean; // Whether this is an official parade

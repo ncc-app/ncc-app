@@ -37,6 +37,8 @@ import {
   NCC_YEARS,
   DIVISIONS,
   DIVISION_LABELS,
+  ATTENDANCE_SESSION_TITLE_OPTIONS,
+  type AttendanceSessionTitle,
   normalizeNccYear,
 } from "@/shared/config/constants";
 import {
@@ -57,6 +59,8 @@ const AttendanceManagement: React.FC = () => {
   // Generator form state
   const [gDivision, setGDivision] = useState<Division | "">("SD");
   const [gYear, setGYear] = useState<NccYear | "">("1st Year");
+  const [gTitleType, setGTitleType] =
+    useState<AttendanceSessionTitle>("Parade");
   const [gTitle, setGTitle] = useState("Parade");
   const [gDate, setGDate] = useState(() => toISTDateInputValue());
   const [gDoubleParade, setGDoubleParade] = useState(false);
@@ -236,6 +240,7 @@ const AttendanceManagement: React.FC = () => {
         nccYear: gYear,
         title: gTitle,
         date: gDate,
+        category: gTitleType === "Theory" ? "Theory Class" : gTitleType,
         ...(gDoubleParade ? { paradeCount: 2 } : {}),
         ...(gOfficialParade ? { isOfficialParade: true } : {}),
       };
@@ -488,14 +493,31 @@ const AttendanceManagement: React.FC = () => {
                         <Col md={7}>
                           <Form.Group>
                             <Form.Label>Title</Form.Label>
-                            <Form.Control
-                              value={gTitle}
-                              onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                setGTitle(e.target.value)
-                              }
-                              placeholder="e.g., Parade"
-                              required
-                            />
+                            <Form.Select
+                              value={gTitleType}
+                              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                                const value = e.target.value as AttendanceSessionTitle;
+                                setGTitleType(value);
+                                setGTitle(value === "Other" ? "" : value);
+                              }}
+                            >
+                              {ATTENDANCE_SESSION_TITLE_OPTIONS.map((title) => (
+                                <option key={title} value={title}>
+                                  {title}
+                                </option>
+                              ))}
+                            </Form.Select>
+                            {gTitleType === "Other" && (
+                              <Form.Control
+                                className="mt-2"
+                                value={gTitle}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                                  setGTitle(e.target.value)
+                                }
+                                placeholder="Enter a custom title"
+                                required
+                              />
+                            )}
                           </Form.Group>
                         </Col>
                         <Col md={5}>

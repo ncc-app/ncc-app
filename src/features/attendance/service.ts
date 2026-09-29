@@ -4,6 +4,7 @@ import type { Division, NccYear } from "@/shared/config/constants";
 import { isCadetUser } from "@/shared/utils/userType";
 import type {
   AttendanceMark,
+  AttendanceCategory,
   AttendanceSession,
   AttendanceStatus,
   SessionStats,
@@ -144,8 +145,38 @@ export async function updateSessionStatus(
   await updateDoc(doc(db, "attendanceSessions", sessionId), updates);
 }
 
+export async function updateSessionTitle(
+  sessionId: string,
+  title: string,
+  category?: AttendanceCategory,
+): Promise<void> {
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) throw new Error("Session title is required");
+
+  const session = await getSession(sessionId);
+  if (!session) throw new Error("Session not found");
+  if (session.status === "locked") {
+    throw new Error("Locked session titles cannot be edited");
+  }
+
+  const updates: Record<string, unknown> = {
+    title: trimmedTitle,
+  };
+  if (category) updates.category = category;
+  await updateDoc(doc(db, "attendanceSessions", sessionId), updates);
+}
+
 export async function lockSession(sessionId: string, userId?: string) {
   await updateSessionStatus(sessionId, "locked", userId);
+  
+  // Recalculate stats for all cadets in this session's division/year
+  const sess = await getSession(sessionId);
+  if (sess) {
+    const cadets = await getCadetsByDivision(sess.divisionId, sess.nccYear);
+    await Promise.all(
+      cadets.map((c) => recalculateCadetStats(c.id, sess.divisionId, sess.nccYear))
+    );
+  }
 }
 
 export async function updateSessionParadeFlags(
@@ -286,6 +317,11 @@ export async function recalculateCadetStats(
     string,
     { total: number; present: number; absent: number }
   > = {};
+  const categoryBreakdown = Object.fromEntries(
+    (["Theory Class", "Parade", "Volunteering", "Other"] as AttendanceCategory[]).map(
+      (category) => [category, { total: 0, present: 0, absent: 0 }],
+    ),
+  ) as CadetAttendanceStats["categoryBreakdown"];
   const recentSessionIds: string[] = [];
 
   for (const session of sessions) {
@@ -308,6 +344,13 @@ export async function recalculateCadetStats(
     if (mark.status === "P") monthly[monthKey].present++;
     if (mark.status === "A") monthly[monthKey].absent++;
 
+    const categoryStats = categoryBreakdown?.[session.category || "Other"];
+    if (categoryStats) {
+      categoryStats.total++;
+      if (mark.status === "P") categoryStats.present++;
+      if (mark.status === "A") categoryStats.absent++;
+    }
+
     // Recent sessions
     if (recentSessionIds.length < 10) {
       recentSessionIds.push(session.id!);
@@ -327,6 +370,7 @@ export async function recalculateCadetStats(
     absent,
     attendanceRate: Math.round(attendanceRate * 10) / 10,
     monthly,
+    categoryBreakdown,
     recentSessionIds,
     updatedAt: new Date().toISOString(),
   };
@@ -448,48 +492,6 @@ export async function getUserAttendanceHistory(
   );
 
   return result.filter((item) => item.mark !== null);
-}
-
-export async function getSessionsForCalendar(
-  cadetId: string,
-  year: number,
-  month: number,
-  divisionId?: Division,
-): Promise<
-  Array<{
-    date: string;
-    sessionId: string;
-    title: string;
-    status: AttendanceStatus | null;
-  }>
-> {
-  const startDate = new Date(year, month - 1, 1);
-  const endDate = new Date(year, month, 0);
-
-  let sessions = await listSessions();
-  if (divisionId) {
-    sessions = sessions.filter((s) => s.divisionId === divisionId);
-  }
-
-  // Filter by month
-  sessions = sessions.filter((s) => {
-    const d = new Date(s.date);
-    return d >= startDate && d <= endDate;
-  });
-
-  const result = await Promise.all(
-    sessions.map(async (session) => {
-      const mark = await getMark(session.id!, cadetId);
-      return {
-        date: session.date,
-        sessionId: session.id!,
-        title: session.title,
-        status: mark?.status || null,
-      };
-    }),
-  );
-
-  return result.filter((item) => item.status !== null);
 }
 
 export async function cleanupLegacySessionFields(): Promise<number> {

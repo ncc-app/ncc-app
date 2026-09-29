@@ -137,31 +137,9 @@ const Dashboard: React.FC = () => {
             <Card className="text-center h-100 shadow-sm hover-lift">
               <Card.Body className="d-flex flex-column justify-content-between">
                 <div>
-                  <i className="bi bi-person-gear text-danger dashboard-home-icon"></i>
-                  <h3 className="mt-3">Roles</h3>
-                  <p className="text-muted small">Assign & modify</p>
-                </div>
-                <Button
-                  as={Link}
-                  to="/admin/roles"
-                  variant="danger"
-                  className="mt-2"
-                >
-                  Manage
-                </Button>
-              </Card.Body>
-            </Card>
-          </Col>
-        )}
-
-        {(isAdmin || isSuperAdmin) && (
-          <Col xs={12} sm={6} md={4} lg={3} xl={3}>
-            <Card className="text-center h-100 shadow-sm hover-lift">
-              <Card.Body className="d-flex flex-column justify-content-between">
-                <div>
                   <i className="bi bi-person-badge text-danger dashboard-home-icon"></i>
                   <h3 className="mt-3">
-                    Users
+                    Cadets
                     {pendingCount > 0 && (
                       <Badge
                         bg="danger"
@@ -171,7 +149,7 @@ const Dashboard: React.FC = () => {
                       </Badge>
                     )}
                   </h3>
-                  <p className="text-muted small">Approvals & creds</p>
+                  <p className="text-muted small">Roles & Approval</p>
                 </div>
                 <Button
                   as={Link}
@@ -188,26 +166,6 @@ const Dashboard: React.FC = () => {
 
         {(isAdmin || isSuperAdmin) && (
           <>
-            <Col xs={12} sm={6} md={4} lg={3} xl={3}>
-              <Card className="text-center h-100 shadow-sm hover-lift">
-                <Card.Body className="d-flex flex-column justify-content-between">
-                  <div>
-                    <i className="bi bi-people-fill text-primary dashboard-home-icon"></i>
-                    <h3 className="mt-3">Cadets</h3>
-                    <p className="text-muted small">Manage profiles</p>
-                  </div>
-                  <Button
-                    as={Link}
-                    to="/admin/cadets"
-                    variant="primary"
-                    className="mt-2"
-                  >
-                    Manage
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-
             <Col xs={12} sm={6} md={4} lg={3} xl={3}>
               <Card className="text-center h-100 shadow-sm hover-lift">
                 <Card.Body className="d-flex flex-column justify-content-between">

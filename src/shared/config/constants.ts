@@ -178,6 +178,16 @@ export const DIVISION_LABELS: Record<Division, string> = {
 export const NCC_YEARS = ["1st Year", "2nd Year", "3rd Year"] as const;
 export type NccYear = (typeof NCC_YEARS)[number];
 
+// Attendance session title options. Custom titles are supported through Other.
+export const ATTENDANCE_SESSION_TITLE_OPTIONS = [
+  "Parade",
+  "Theory",
+  "Volunteering",
+  "Other",
+] as const;
+export type AttendanceSessionTitle =
+  (typeof ATTENDANCE_SESSION_TITLE_OPTIONS)[number];
+
 // NCC year equivalent aliases.
 // Keep NCC_YEARS canonical to avoid side effects in existing modules.
 export const NCC_YEAR_EQUIVALENTS: Record<NccYear, readonly string[]> = {
