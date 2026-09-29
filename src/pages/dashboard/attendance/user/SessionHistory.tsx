@@ -1,5 +1,6 @@
 import { Table, Badge, Form, Card } from "react-bootstrap";
-import { useState, useMemo, type ChangeEvent } from "react";
+import { useState, useMemo, useEffect, type ChangeEvent } from "react";
+import TablePaginationFooter from "@/components/common/TablePaginationFooter";
 import type {
   AttendanceSession,
   AttendanceMark,
@@ -20,6 +21,8 @@ interface SessionHistoryProps {
 
 export function SessionHistory({ history }: SessionHistoryProps) {
   const [statusFilter, setStatusFilter] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const filteredHistory = useMemo(() => {
     return history.filter((item) => {
@@ -27,6 +30,25 @@ export function SessionHistory({ history }: SessionHistoryProps) {
       return matchesStatus;
     });
   }, [history, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredHistory.length / rowsPerPage));
+  const paginatedHistory = useMemo(() => {
+    const start = (currentPage - 1) * rowsPerPage;
+    return filteredHistory.slice(start, start + rowsPerPage);
+  }, [currentPage, filteredHistory, rowsPerPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, rowsPerPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
+
+  const formatSessionDate = (date: string) => {
+    const [year, month, day] = date.split("-");
+    return year && month && day ? `${day}-${month}-${year}` : date;
+  };
 
   return (
     <Card className="border-0 shadow-sm">
@@ -62,9 +84,9 @@ export function SessionHistory({ history }: SessionHistoryProps) {
               </tr>
             </thead>
             <tbody>
-              {filteredHistory.map((item) => (
+              {paginatedHistory.map((item) => (
                 <tr key={item.session.id}>
-                  <td>{item.session.date}</td>
+                  <td>{formatSessionDate(item.session.date)}</td>
                   <td>{item.session.title}</td>
                   <td>
                     <Badge
@@ -85,6 +107,18 @@ export function SessionHistory({ history }: SessionHistoryProps) {
           </Table>
         )}
       </Card.Body>
+      <TablePaginationFooter
+        totalItems={filteredHistory.length}
+        currentPage={currentPage}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={setRowsPerPage}
+        onFirstPage={() => setCurrentPage(1)}
+        onPreviousPage={() => setCurrentPage((page) => Math.max(1, page - 1))}
+        onNextPage={() =>
+          setCurrentPage((page) => Math.min(totalPages, page + 1))
+        }
+        onLastPage={() => setCurrentPage(totalPages)}
+      />
     </Card>
   );
 }

@@ -428,11 +428,6 @@ const TrainingDiaryReport: React.FC = () => {
       return;
     }
 
-    if (attachedImages.length !== 3) {
-      toast.error("Please attach exactly 3 training photos");
-      return;
-    }
-
     setShowPreview(true);
   };
 
@@ -863,12 +858,12 @@ const TrainingDiaryReport: React.FC = () => {
               <Card className="shadow-sm">
                 <Card.Header className="bg-success text-white">
                   <i className="bi bi-camera me-2" />
-                  Step 4 — Training Photos (3 Required)
+                  Step 4 — Training Photos (Optional)
                 </Card.Header>
                 <Card.Body>
                   <p className="text-muted small mb-3">
-                    Attach exactly 3 training photos (PNG/JPG). These will
-                    appear on a dedicated second page of the report. You can
+                    Attach up to 3 training photos (PNG/JPG). Photos will
+                    appear on a dedicated second page when provided. You can
                     drag and drop images here.
                   </p>
 
@@ -949,7 +944,7 @@ const TrainingDiaryReport: React.FC = () => {
                     </Row>
                     <div className="text-muted small">
                       <strong>{attachedImages.length}</strong> / 3 photos
-                      attached
+                      attached (optional)
                       {attachedImages.length === 3 && (
                         <span className="text-success ms-2">
                           <i className="bi bi-check-circle-fill me-1" />
@@ -1006,7 +1001,7 @@ const TrainingDiaryReport: React.FC = () => {
                 anoName={selectedAno?.name}
               />
             </div>
-            {imagePreviewUrls.length === 3 && (
+            {imagePreviewUrls.length > 0 && (
               <div
                 className="document-preview-card mx-auto bg-white td-page td-page-photos"
                 style={{

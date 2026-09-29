@@ -3,21 +3,19 @@ import { Card, Spinner, Tab, Tabs } from "react-bootstrap";
 import { useAuth } from "@/features/auth/AuthContext";
 import {
   StatsOverview,
-  AttendanceCalendar,
   PerformanceGraphs,
   SessionHistory,
 } from "./user";
 import {
   getCadetByUserId,
   getUserAttendanceHistory,
-  getSessionsForCalendar,
 } from "@/features/attendance/service";
 import type {
   AttendanceSession,
   AttendanceMark,
   CadetAttendanceStats,
-  AttendanceStatus,
 } from "@/features/attendance/attendance.types";
+import type { AttendanceCategory } from "@/features/attendance/attendance.types";
 import type { Cadet } from "@/shared/types";
 import { normalizeNccYear } from "@/shared/config/constants";
 import { isAnoUser } from "@/shared/utils/userType";
@@ -34,15 +32,6 @@ const AttendanceView: React.FC = () => {
       mark: AttendanceMark | null;
     }>
   >([]);
-  const [calendarEntries, setCalendarEntries] = useState<
-    Array<{
-      date: string;
-      sessionId: string;
-      title: string;
-      status: AttendanceStatus | null;
-    }>
-  >([]);
-
   // Load cadet data
   useEffect(() => {
     const activeUser = currentUser;
@@ -76,29 +65,6 @@ const AttendanceView: React.FC = () => {
     loadData();
   }, [currentUser]);
 
-  // Load calendar entries for current month
-  useEffect(() => {
-    const activeCadet = cadet;
-    if (!activeCadet) return;
-    const cadetId = activeCadet.id;
-    const cadetDivision = activeCadet.division as Division;
-
-    async function loadCalendar() {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const entries = await getSessionsForCalendar(
-        cadetId,
-        year,
-        month,
-        cadetDivision,
-      );
-      setCalendarEntries(entries);
-    }
-
-    loadCalendar();
-  }, [cadet]);
-
   // Compute overview stats from all marked sessions provided by admin-side marking.
   const computedStats = useMemo<CadetAttendanceStats | null>(() => {
     if (!cadet || !history.length) return null;
@@ -111,6 +77,18 @@ const AttendanceView: React.FC = () => {
       string,
       { total: number; present: number; absent: number }
     > = {};
+    const categories: AttendanceCategory[] = [
+      "Theory Class",
+      "Parade",
+      "Volunteering",
+      "Other",
+    ];
+    const categoryBreakdown = Object.fromEntries(
+      categories.map((category) => [
+        category,
+        { total: 0, present: 0, absent: 0 },
+      ]),
+    ) as CadetAttendanceStats["categoryBreakdown"];
 
     history.forEach(({ session, mark }) => {
       if (!mark) return;
@@ -130,6 +108,14 @@ const AttendanceView: React.FC = () => {
       monthly[monthKey].total++;
       if (mark.status === "P") monthly[monthKey].present++;
       if (mark.status === "A") monthly[monthKey].absent++;
+
+      const category = session.category || "Other";
+      const categoryStats = categoryBreakdown?.[category];
+      if (categoryStats) {
+        categoryStats.total++;
+        if (mark.status === "P") categoryStats.present++;
+        if (mark.status === "A") categoryStats.absent++;
+      }
     });
 
     const totalSessions = present + absent;
@@ -145,6 +131,7 @@ const AttendanceView: React.FC = () => {
       absent,
       attendanceRate,
       monthly,
+      categoryBreakdown,
       recentSessionIds: history.slice(0, 10).map((h) => h.session.id!),
       updatedAt: new Date().toISOString(),
     };
@@ -218,18 +205,6 @@ const AttendanceView: React.FC = () => {
             <StatsOverview stats={computedStats} />
           </div>
           <PerformanceGraphs stats={computedStats} />
-        </Tab>
-
-        {/* Calendar Tab */}
-        <Tab eventKey="calendar" title="Calendar">
-          <AttendanceCalendar
-            entries={calendarEntries}
-            onDateClick={(_, entry) => {
-              if (entry) {
-                console.log("Selected session:", entry.sessionId);
-              }
-            }}
-          />
         </Tab>
 
         {/* History Tab */}

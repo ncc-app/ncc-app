@@ -80,6 +80,7 @@ All persistent data is stored in **Cloud Firestore** under the project `ncc-app-
 | ------------- | ------------ | ----------------------- |
 | `title`       | string       | Session name            |
 | `date`        | string       | Session date            |
+| `category`    | string       | Optional: `Theory Class`, `Parade`, `Volunteering`, or `Other` |
 | `year`        | string       | NCC year filter         |
 | `division`    | string       | Division filter         |
 | `divisionId`  | string       | Used in composite index |

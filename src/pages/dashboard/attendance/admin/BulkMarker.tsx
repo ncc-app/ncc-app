@@ -11,8 +11,14 @@ import {
   lockSession,
   updateSessionStatus,
   updateSessionParadeFlags,
+  updateSessionTitle,
 } from "@/features/attendance/service";
-import type { Division, NccYear } from "@/shared/config/constants";
+import {
+  ATTENDANCE_SESSION_TITLE_OPTIONS,
+  type AttendanceSessionTitle,
+  type Division,
+  type NccYear,
+} from "@/shared/config/constants";
 import type {
   AttendanceSession,
   AttendanceStatus,
@@ -36,6 +42,8 @@ export function BulkMarker({ sessionId, onClose }: BulkMarkerProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const [titleType, setTitleType] =
+    useState<AttendanceSessionTitle>("Other");
 
   // Load session and cadets
   useEffect(() => {
@@ -49,17 +57,29 @@ export function BulkMarker({ sessionId, onClose }: BulkMarkerProps) {
           return;
         }
         setSession(sess);
+        setTitleType(
+          sess.title === "Parade" || sess.title === "Theory"
+            ? sess.title
+            : "Other",
+        );
 
         // Load cadets for this division/year
         const cadetList = await getCadetsByDivision(
           sess.divisionId as Division,
           sess.nccYear as NccYear,
         );
-        setCadets(cadetList);
+        const sortedCadets = [...cadetList].sort((a, b) =>
+          (a.regimentalNumber || "").localeCompare(
+            b.regimentalNumber || "",
+            undefined,
+            { numeric: true, sensitivity: "base" },
+          ),
+        );
+        setCadets(sortedCadets);
 
         // Default all cadets to absent for quick draft/lock workflows.
         const marksMap: Record<string, AttendanceStatus> = {};
-        cadetList.forEach((c) => {
+        sortedCadets.forEach((c) => {
           marksMap[c.id] = "A";
         });
 
@@ -113,6 +133,13 @@ export function BulkMarker({ sessionId, onClose }: BulkMarkerProps) {
 
     setSaving(true);
     try {
+      if (!session?.title.trim()) {
+        toast.error("Please enter a session title");
+        return;
+      }
+
+      await updateSessionTitle(sessionId, session.title, session.category);
+
       // Prepare bulk payload
       const marksList = Object.entries(marks).map(([cadetId, status]) => ({
         cadetId,
@@ -211,7 +238,52 @@ export function BulkMarker({ sessionId, onClose }: BulkMarkerProps) {
         )}
 
         {!isLocked && (
-          <div className="d-flex gap-4 mb-3">
+          <div className="mb-3">
+            <Form.Group className="mb-3" style={{ maxWidth: 420 }}>
+              <Form.Label>Session Title</Form.Label>
+              <Form.Select
+                value={titleType}
+                onChange={(e: ChangeEvent<HTMLSelectElement>) => {
+                  const value = e.target.value as AttendanceSessionTitle;
+                  setTitleType(value);
+                  setSession((prev) => {
+                    if (!prev) return prev;
+                    const title =
+                      value === "Other" &&
+                      (prev.title === "Parade" || prev.title === "Theory")
+                        ? ""
+                        : value;
+                    const category =
+                      value === "Theory" ? "Theory Class" : value;
+                    return { ...prev, title, category };
+                  });
+                  setHasChanges(true);
+                }}
+                disabled={saving}
+              >
+                {ATTENDANCE_SESSION_TITLE_OPTIONS.map((title) => (
+                  <option key={title} value={title}>
+                    {title}
+                  </option>
+                ))}
+              </Form.Select>
+              {titleType === "Other" && (
+                <Form.Control
+                  className="mt-2"
+                  value={session.title}
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setSession((prev) =>
+                      prev ? { ...prev, title: e.target.value, category: "Other" } : prev,
+                    );
+                    setHasChanges(true);
+                  }}
+                  placeholder="Enter a custom title"
+                  disabled={saving}
+                />
+              )}
+            </Form.Group>
+
+            <div className="d-flex gap-4">
             <Form.Check
               type="checkbox"
               id={`marker-double-parade-${sessionId}`}
@@ -238,6 +310,7 @@ export function BulkMarker({ sessionId, onClose }: BulkMarkerProps) {
                 setHasChanges(true);
               }}
             />
+            </div>
           </div>
         )}
 

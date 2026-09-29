@@ -1,12 +1,11 @@
 import React from "react";
-import { Route } from "react-router-dom";
+import { Navigate, Route } from "react-router-dom";
 import { ProtectedRoute } from "@/components";
 import DashboardHome from "@/pages/dashboard/DashboardHome";
 import Profile from "@/pages/dashboard/Profile";
 import AnnouncementsAdmin from "@/pages/dashboard/announcements/AnnouncementsAdmin";
 import AttendanceManagement from "@/pages/dashboard/attendance/AttendanceManagement";
 import AttendanceView from "@/pages/dashboard/attendance/AttendanceView";
-import CadetManagement from "@/pages/dashboard/users/CadetManagement";
 import AnnualAttendanceReport from "@/pages/dashboard/reports/AnnualAttendanceReport";
 import NominalRollReport from "@/pages/dashboard/reports/NominalRollReport";
 import CatcCampReport from "@/pages/dashboard/reports/CatcCampReport";
@@ -15,7 +14,6 @@ import TrainingDiaryReport from "@/pages/dashboard/reports/TrainingDiaryReport";
 import OnDutyLetterReport from "@/pages/dashboard/reports/OnDutyLetterReport";
 import ReportsTemplateManager from "@/pages/dashboard/reports/ReportsTemplateManager";
 import ReportsWorkspace from "@/pages/dashboard/reports/ReportsWorkspace";
-import RoleManagement from "@/pages/dashboard/users/RoleManagement";
 import UserManagement from "@/pages/dashboard/users/UserManagement";
 import AdminSettings from "@/pages/dashboard/settings/AdminSettings";
 import AlumniManagement from "@/pages/dashboard/alumni/AlumniManagement";
@@ -59,11 +57,7 @@ export const protectedRoutes = (
     />
     <Route
       path="/admin/roles"
-      element={
-        <ProtectedRoute requiredRoles={["admin", "superadmin", "alumni"]}>
-          <RoleManagement />
-        </ProtectedRoute>
-      }
+      element={<Navigate to="/admin/users" replace />}
     />
     <Route
       path="/admin/users"
@@ -83,11 +77,7 @@ export const protectedRoutes = (
     />
     <Route
       path="/admin/cadets"
-      element={
-        <ProtectedRoute requiredRoles={["admin", "superadmin", "alumni"]}>
-          <CadetManagement />
-        </ProtectedRoute>
-      }
+      element={<Navigate to="/admin/users" replace />}
     />
     <Route
       path="/admin/duties"
