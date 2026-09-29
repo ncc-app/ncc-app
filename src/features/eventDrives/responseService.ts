@@ -112,8 +112,8 @@ export async function getEligibleCadetsWithResponses(
 
   for (const d of snap.docs) {
     const data = d.data();
-    // Only include cadets (not ANOs)
-    if (data.userType === "ano") continue;
+    // Only include cadets (not ANOs, not Alumni)
+    if (data.userType === "ano" || data.role === "alumni") continue;
     cadets.push({
       uid: d.id,
       name: data.name || "",
@@ -126,6 +126,13 @@ export async function getEligibleCadetsWithResponses(
       rank: data.rank,
     });
   }
+
+  // Sort cadets by regimental number
+  cadets.sort((a, b) => {
+    const numA = a.regimentalNumber || "";
+    const numB = b.regimentalNumber || "";
+    return numA.localeCompare(numB);
+  });
 
   // Fetch all responses for this drive
   const responses = await getResponses(driveId);

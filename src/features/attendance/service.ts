@@ -393,7 +393,7 @@ export async function listCadets(): Promise<(Cadet & { id: string })[]> {
     .filter((d) => {
       const data = d.data();
       const status = normalizeStatus(data.status);
-      return isCadetUser(data) && status === "active";
+      return isCadetUser(data) && status === "active" && data.role !== "alumni";
     })
     .map((d) => {
       const data = d.data();
@@ -419,7 +419,8 @@ export async function listCadets(): Promise<(Cadet & { id: string })[]> {
         residentialStatus: data.residentialStatus || "",
         joinDate: data.createdAt || "",
       } as Cadet & { id: string };
-    });
+    })
+    .sort((a, b) => (a.regimentalNumber || "").localeCompare(b.regimentalNumber || ""));
 }
 
 export async function getCadetsByDivision(
@@ -441,7 +442,7 @@ export async function getCadetByUserId(
   if (!userDoc.exists()) return null;
 
   const data = userDoc.data();
-  if (!isCadetUser(data) || data.status !== "active") return null;
+  if (!isCadetUser(data) || data.status !== "active" || data.role === "alumni") return null;
 
   return {
     id: userId,
