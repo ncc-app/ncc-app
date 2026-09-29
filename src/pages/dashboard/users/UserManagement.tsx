@@ -100,7 +100,7 @@ const UserManagement: React.FC = () => {
     return (
       <Container className="py-5 text-center">
         <Spinner as="span" animation="border" variant="primary" size="sm" />
-        <p className="mt-3">Loading user management...</p>
+        <p className="mt-3">Loading Cadets...</p>
       </Container>
     );
   }

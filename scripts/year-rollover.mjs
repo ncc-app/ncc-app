@@ -330,7 +330,7 @@ async function main() {
       const userRef = db.doc(`users/${item.uid}`);
       const cadetRef = db.doc(`cadets/${item.uid}`);
       const alumniRef = db.doc(`alumni/${item.uid}`);
-      const userData = snapshotUsers[item.uid] || {};
+      const userData = item.data || {};
 
       switch (item.action) {
         case "alumni_ncc": {
