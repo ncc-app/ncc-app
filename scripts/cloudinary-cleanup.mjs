@@ -46,7 +46,7 @@ async function deleteFromCloudinary(publicId, resourceType = "image") {
   const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/resources/${resourceType}/upload`;
 
   const formData = new URLSearchParams();
-  formData.append("public_ids[]", publicId);
+  formData.append("public_ids", publicId);
 
   const authHeader =
     "Basic " + Buffer.from(`${API_KEY}:${API_SECRET}`).toString("base64");

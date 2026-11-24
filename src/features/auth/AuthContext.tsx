@@ -55,6 +55,9 @@ interface AuthContextType {
   currentUser: FirebaseUser | null;
   userProfile: User | null;
   loading: boolean;
+  profileLoading: boolean;
+  networkError: boolean;
+  retryProfileFetch: () => Promise<User | null>;
   signUp: (
     email: string,
     password: string,
@@ -88,33 +91,89 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const SESSION_CACHE_KEY = "ncc_user_profile";
+
+const getCachedProfile = (): User | null => {
+  try {
+    const raw = sessionStorage.getItem(SESSION_CACHE_KEY);
+    return raw ? (JSON.parse(raw) as User) : null;
+  } catch {
+    return null;
+  }
+};
+
+const cacheProfile = (profile: User | null) => {
+  try {
+    if (profile) {
+      sessionStorage.setItem(SESSION_CACHE_KEY, JSON.stringify(profile));
+    } else {
+      sessionStorage.removeItem(SESSION_CACHE_KEY);
+    }
+  } catch (e) {
+    console.warn("Failed to cache profile in sessionStorage", e);
+  }
+};
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
-  const [userProfile, setUserProfile] = useState<User | null>(null);
+  const [userProfile, setUserProfile] = useState<User | null>(() => getCachedProfile());
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
+  const [networkError, setNetworkError] = useState(false);
 
-  // Fetch user profile from Firestore
-  const fetchUserProfile = async (uid: string): Promise<User | null> => {
+  // Fetch user profile from Firestore (with retry for slow networks)
+  const fetchUserProfile = async (uid: string, retries = 2): Promise<User | null> => {
+    let lastError: any = null;
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        let userDoc = await getDoc(doc(db, "users", uid));
+
+        // If not in users, check alumni collection
+        if (!userDoc.exists()) {
+          userDoc = await getDoc(doc(db, "alumni", uid));
+        }
+
+        if (userDoc.exists()) {
+          const data = userDoc.data() as Partial<User>;
+          const normalized = {
+            uid: data.uid || uid,
+            ...data,
+          } as User;
+          setUserProfile(normalized);
+          cacheProfile(normalized);
+          setNetworkError(false);
+          return normalized;
+        }
+        // Document confirmed does not exist in users or alumni
+        setUserProfile(null);
+        cacheProfile(null);
+        setNetworkError(false);
+        return null;
+      } catch (error) {
+        lastError = error;
+        if (attempt < retries) {
+          console.warn(`Profile fetch attempt ${attempt + 1} failed, retrying...`, error);
+          await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+          continue;
+        }
+      }
+    }
+    console.error("Error fetching user profile after retries:", lastError);
+    // Don't wipe cached userProfile if network failed; re-throw so callers know it was a network failure
+    throw lastError || new Error("Failed to fetch user profile due to network issue");
+  };
+
+  const retryProfileFetch = async (): Promise<User | null> => {
+    if (!currentUser) return null;
+    setProfileLoading(true);
+    setNetworkError(false);
     try {
-      let userDoc = await getDoc(doc(db, "users", uid));
-
-      // If not in users, check alumni collection
-      if (!userDoc.exists()) {
-        userDoc = await getDoc(doc(db, "alumni", uid));
-      }
-
-      if (userDoc.exists()) {
-        const data = userDoc.data() as Partial<User>;
-        const normalized = {
-          uid: data.uid || uid,
-          ...data,
-        } as User;
-        setUserProfile(normalized);
-        return normalized;
-      }
-      return null;
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
+      const p = await fetchUserProfile(currentUser.uid);
+      setProfileLoading(false);
+      return p;
+    } catch (e) {
+      setNetworkError(true);
+      setProfileLoading(false);
       return null;
     }
   };
@@ -377,7 +436,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signOut = async (): Promise<void> => {
     try {
       await firebaseSignOut(auth);
+      cacheProfile(null);
       setUserProfile(null);
+      setNetworkError(false);
       toast.success("Logged out successfully!");
     } catch (error: any) {
       console.error("Sign out error:", error);
@@ -422,57 +483,80 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const unsubscribe = onAuthStateChanged(auth, async (user: any) => {
       setCurrentUser(user);
       if (user) {
-        const profile = await fetchUserProfile(user.uid);
-        let finalName = profile?.name;
+        // Immediate restore from cache if available for this user
+        const cached = getCachedProfile();
+        if (cached && cached.uid === user.uid) {
+          setUserProfile(cached);
+          setProfileLoading(false);
+        } else {
+          setProfileLoading(true);
+        }
 
-        // If not in users collection, they might be an existing pending cadet
-        if (!finalName && !user.displayName) {
-          try {
-            const pendingQuery = query(
-              collection(db, "pendingCadets"),
-              where("uid", "==", user.uid),
-            );
-            const pendingSnap = await getDocs(pendingQuery);
-            if (!pendingSnap.empty) {
-              const pendingDoc = pendingSnap.docs[0];
-              finalName = pendingDoc.data().name;
+        try {
+          const profile = await fetchUserProfile(user.uid);
+          let finalName = profile?.name;
 
-              // Auto-sync email verification status from Firebase Auth → Firestore
-              // This fixes the case where user verified email after session expired
-              if (user.emailVerified && !pendingDoc.data().emailVerified) {
-                try {
-                  await setDoc(
-                    pendingDoc.ref,
-                    { emailVerified: true },
-                    { merge: true },
-                  );
-                  console.log(
-                    "Auto-synced email verification for pending cadet:",
-                    user.email,
-                  );
-                } catch (syncErr) {
-                  console.warn(
-                    "Failed to sync email verification status:",
-                    syncErr,
-                  );
+          // If not in users collection, they might be an existing pending cadet
+          if (!finalName && !user.displayName) {
+            try {
+              const pendingQuery = query(
+                collection(db, "pendingCadets"),
+                where("uid", "==", user.uid),
+              );
+              const pendingSnap = await getDocs(pendingQuery);
+              if (!pendingSnap.empty) {
+                const pendingDoc = pendingSnap.docs[0];
+                finalName = pendingDoc.data().name;
+
+                // Auto-sync email verification status from Firebase Auth → Firestore
+                // This fixes the case where user verified email after session expired
+                if (user.emailVerified && !pendingDoc.data().emailVerified) {
+                  try {
+                    await setDoc(
+                      pendingDoc.ref,
+                      { emailVerified: true },
+                      { merge: true },
+                    );
+                    console.log(
+                      "Auto-synced email verification for pending cadet:",
+                      user.email,
+                    );
+                  } catch (syncErr) {
+                    console.warn(
+                      "Failed to sync email verification status:",
+                      syncErr,
+                    );
+                  }
                 }
               }
+            } catch (err) {
+              console.warn("Failed to fetch pending cadet name", err);
             }
-          } catch (err) {
-            console.warn("Failed to fetch pending cadet name", err);
           }
-        }
 
-        // Sync displayName to Firebase Auth if it's missing (fixes %DISPLAY_NAME% in reset emails)
-        if (finalName && !user.displayName) {
-          try {
-            await updateProfile(user, { displayName: finalName });
-          } catch (e) {
-            console.warn("Failed to sync displayName:", e);
+          // Sync displayName to Firebase Auth if it's missing (fixes %DISPLAY_NAME% in reset emails)
+          if (finalName && !user.displayName) {
+            try {
+              await updateProfile(user, { displayName: finalName });
+            } catch (e) {
+              console.warn("Failed to sync displayName:", e);
+            }
           }
+        } catch (fetchErr) {
+          console.error("Profile fetch error on auth state change:", fetchErr);
+          // Only show network error screen if we don't have a cached profile to keep working with
+          const currentCached = getCachedProfile();
+          if (!currentCached || currentCached.uid !== user.uid) {
+            setNetworkError(true);
+          }
+        } finally {
+          setProfileLoading(false);
         }
       } else {
+        cacheProfile(null);
         setUserProfile(null);
+        setProfileLoading(false);
+        setNetworkError(false);
       }
       setLoading(false);
     });
@@ -484,6 +568,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     currentUser,
     userProfile,
     loading,
+    profileLoading,
+    networkError,
+    retryProfileFetch,
     signUp,
     signIn,
     signInWithGoogle,
@@ -500,7 +587,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 };

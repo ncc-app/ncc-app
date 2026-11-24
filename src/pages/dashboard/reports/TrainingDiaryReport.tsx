@@ -1137,27 +1137,7 @@ const TrainingDiaryDocument: React.FC<{
         </div>
       </div>
 
-      <div
-        className="td-info-row"
-        style={{ display: "flex", marginBottom: "8px" }}
-      >
-        <span style={{ whiteSpace: "nowrap", marginRight: "8px" }}>
-          Cadet Str : Auth
-        </span>
-        <span>
-          <u>
-            <strong>{computedStats.auth}</strong>
-          </u>
-        </span>
-        <span style={{ whiteSpace: "nowrap", margin: "0 8px 0 16px" }}>
-          Enrolled
-        </span>
-        <span>
-          <u>
-            <strong>{computedStats.enrolled}</strong>
-          </u>
-        </span>
-      </div>
+
 
       <table className="td-table">
         <thead>
@@ -1208,7 +1188,7 @@ const TrainingDiaryDocument: React.FC<{
                 )}
               </div>
             </td>
-            <td rowSpan={2}>{formData.refreshment}</td>
+            <td rowSpan={2} className="td-refreshment-cell">{formData.refreshment}</td>
             <td rowSpan={2}>{formData.remarks}</td>
           </tr>
           <tr>

@@ -216,6 +216,14 @@
   text-align: center;
 }
 
+.td-table td.td-refreshment-cell {
+  vertical-align: top;
+  text-align: left;
+  padding: 8px;
+  word-break: break-word;
+  white-space: pre-line;
+}
+
 .td-subjects-list {
   list-style: none;
   padding-left: 0;

@@ -1263,15 +1263,13 @@ const ParadeStatePreview: React.FC<PreviewProps> = ({
               <div className="ps-sig-block">
                 <div className="ps-sig-line">Signature of the ANO/CTO</div>
                 <div className="ps-sig-subtitle">(With seal)</div>
+                <div className="ps-countersigned"><u>COUNTERSIGNED</u></div>
               </div>
               <div className="ps-sig-block">
-                <div className="ps-sig-line">Signature of the Headmaster</div>
+                <div className="ps-sig-line">Signature of Head of the Institution</div>
                 <div className="ps-sig-subtitle">(With seal)</div>
               </div>
             </div>
-
-            {/* Countersigned */}
-            <div className="ps-countersigned">COUNTERSIGNED</div>
 
             {/* Notes */}
             <div
@@ -1299,17 +1297,17 @@ const ParadeStatePreview: React.FC<PreviewProps> = ({
             <table className="ps-absentee-table">
               <thead>
                 <tr>
-                  <th rowSpan={2}>S No</th>
+                  <th rowSpan={2} style={{ width: "5%" }}>S No</th>
                   <th colSpan={3}>Absent with Leave</th>
                   <th colSpan={3}>Absent without Leave</th>
                 </tr>
                 <tr>
-                  <th>Regimental No</th>
-                  <th>Rank</th>
-                  <th>Name</th>
-                  <th>Regimental No</th>
-                  <th>Rank</th>
-                  <th>Name</th>
+                  <th style={{ width: "15%" }}>Regimental No</th>
+                  <th style={{ width: "8%" }}>Rank</th>
+                  <th style={{ width: "24.5%" }}>Name</th>
+                  <th style={{ width: "15%" }}>Regimental No</th>
+                  <th style={{ width: "8%" }}>Rank</th>
+                  <th style={{ width: "24.5%" }}>Name</th>
                 </tr>
               </thead>
               <tbody>
